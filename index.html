@@ -1,0 +1,1098 @@
+```html
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IT Service Desk - Galaxy Tab Edition</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN für interaktive grafische Statistiken -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Optimierte Scrollbalken für Tablets */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.4);
+      border-radius: 9999px;
+    }
+    .touch-manipulation {
+      touch-action: manipulation;
+    }
+    /* Aktiver Tab & Drag-Indikatoren */
+    .kanban-col {
+      min-height: calc(100vh - 280px);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .kanban-col.drag-over {
+      background-color: rgba(59, 130, 246, 0.08);
+      border: 2px dashed #3b82f6 !important;
+    }
+    .dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+      cursor: grabbing !important;
+    }
+    .touch-ghost {
+      pointer-events: none;
+      position: fixed;
+      z-index: 9999;
+      transform: translate(-50%, -50%) rotate(2deg) scale(1.03);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+      transition: none;
+      opacity: 0.95;
+    }
+    @media (max-width: 768px) {
+      .kanban-col {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200 select-none">
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 transition-colors">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Tablet Device Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg leading-tight tracking-tight">IT Helpdesk</h1>
+            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Tab S10+</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Lokale Support-Zentrale</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons (Right) -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- New Ticket Button -->
+        <button id="openNewTicketModalBtn" class="touch-manipulation flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/25 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span class="hidden sm:inline">Neues Ticket</span>
+          <span class="sm:hidden">Neu</span>
+        </button>
+
+        <!-- Reset Demo Data -->
+        <button id="resetDataBtn" title="Beispieldaten wiederherstellen" class="touch-manipulation p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.033 8.033 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+
+        <!-- Dark/Light Mode Toggle -->
+        <button id="themeToggleBtn" title="Design wechseln" class="touch-manipulation p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+          <!-- Sun Icon (shown in dark mode) -->
+          <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+          <!-- Moon Icon (shown in light mode) -->
+          <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+
+    <!-- 1. DASHBOARD & KPI STATS -->
+    <section>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Stat: Gesamt -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Tickets Gesamt</p>
+            <p id="statTotal" class="text-2xl sm:text-3xl font-extrabold mt-1 text-slate-800 dark:text-slate-100">0</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+          </div>
+        </div>
+
+        <!-- Stat: Offen -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-amber-600 dark:text-amber-400">Offen</p>
+            <p id="statOpen" class="text-2xl sm:text-3xl font-extrabold mt-1 text-amber-600 dark:text-amber-400">0</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+        </div>
+
+        <!-- Stat: In Bearbeitung -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-sky-600 dark:text-sky-400">In Bearbeitung</p>
+            <p id="statProgress" class="text-2xl sm:text-3xl font-extrabold mt-1 text-sky-600 dark:text-sky-400">0</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-500 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+        </div>
+
+        <!-- Stat: Gelöst -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Gelöst</p>
+            <p id="statResolved" class="text-2xl sm:text-3xl font-extrabold mt-1 text-emerald-600 dark:text-emerald-400">0</p>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500 flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Lösungsrate Fortschrittsbalken -->
+      <div class="mt-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl shadow-sm flex items-center gap-4">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Lösungsquote: <span id="resolutionRate" class="text-slate-800 dark:text-slate-200 font-bold">0%</span></span>
+        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+          <div id="progressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1.1 GRAFISCHE STATISTIK & CHARTS FÜR GELÖSTE TICKETS -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 rounded-2xl shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">Lösungs- & Performance-Statistiken</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Echtzeitanalyse der gelösten Vorgänge</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/60">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="font-medium text-emerald-700 dark:text-emerald-300">Gelöst: <strong id="chartResolvedPill">0</strong></span>
+          </div>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="font-medium text-amber-700 dark:text-amber-300">Unerledigt: <strong id="chartPendingPill">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+        <!-- Chart 1: Statusverteilung & Lösungsanteil (Donut Chart) -->
+        <div class="bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+          <h4 class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2 self-start">Status- & Lösungsanteil</h4>
+          <div class="relative w-full max-w-[280px] h-[220px] flex items-center justify-center">
+            <canvas id="statusDistributionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Gelöste Tickets aufgeschlüsselt nach Priorität (Bar Chart) -->
+        <div class="bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col">
+          <h4 class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Gelöste Tickets nach Priorität</h4>
+          <div class="relative w-full h-[220px]">
+            <canvas id="resolvedPriorityChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. FILTER & SEARCH TOOLBAR -->
+    <section class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
+      <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Live-Suche Input -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </span>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Tickets durchsuchen (Titel, Beschreibung, ID)..." 
+            class="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 transition"
+          >
+          <button id="clearSearchBtn" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <!-- Filter-Pills: Priorität -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs">
+          <span class="text-slate-400 font-medium mr-1 hidden lg:inline">Priorität:</span>
+          <button data-filter-prio="all" class="prio-filter-btn px-3 py-1.5 rounded-lg font-medium transition bg-blue-600 text-white">Alle</button>
+          <button data-filter-prio="Kritisch" class="prio-filter-btn px-3 py-1.5 rounded-lg font-medium transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Kritisch</button>
+          <button data-filter-prio="Hoch" class="prio-filter-btn px-3 py-1.5 rounded-lg font-medium transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Hoch</button>
+          <button data-filter-prio="Mittel" class="prio-filter-btn px-3 py-1.5 rounded-lg font-medium transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Mittel</button>
+          <button data-filter-prio="Niedrig" class="prio-filter-btn px-3 py-1.5 rounded-lg font-medium transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200">Niedrig</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. KANBAN STATUS COLUMNS (TOUCH OPTIMIZED) -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 items-start flex-1 pb-12">
+
+      <!-- Spalte: OFFEN -->
+      <div class="flex flex-col bg-slate-100/70 dark:bg-slate-900/40 rounded-2xl p-3 border border-slate-200 dark:border-slate-800/80">
+        <div class="flex items-center justify-between px-2 py-2 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+            <h2 class="font-bold text-sm tracking-wide text-slate-800 dark:text-slate-200">Offen</h2>
+          </div>
+          <span id="badgeCountOpen" class="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">0</span>
+        </div>
+
+        <div id="col-open" data-status="open" class="kanban-col flex flex-col gap-3 p-1.5 rounded-xl border-2 border-transparent transition-all">
+          <!-- Dynamischer Ticket-Inhalt -->
+        </div>
+      </div>
+
+      <!-- Spalte: IN BEARBEITUNG -->
+      <div class="flex flex-col bg-slate-100/70 dark:bg-slate-900/40 rounded-2xl p-3 border border-slate-200 dark:border-slate-800/80">
+        <div class="flex items-center justify-between px-2 py-2 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50"></span>
+            <h2 class="font-bold text-sm tracking-wide text-slate-800 dark:text-slate-200">In Bearbeitung</h2>
+          </div>
+          <span id="badgeCountProgress" class="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">0</span>
+        </div>
+
+        <div id="col-progress" data-status="progress" class="kanban-col flex flex-col gap-3 p-1.5 rounded-xl border-2 border-transparent transition-all">
+          <!-- Dynamischer Ticket-Inhalt -->
+        </div>
+      </div>
+
+      <!-- Spalte: GELÖST -->
+      <div class="flex flex-col bg-slate-100/70 dark:bg-slate-900/40 rounded-2xl p-3 border border-slate-200 dark:border-slate-800/80">
+        <div class="flex items-center justify-between px-2 py-2 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+            <h2 class="font-bold text-sm tracking-wide text-slate-800 dark:text-slate-200">Gelöst</h2>
+          </div>
+          <span id="badgeCountResolved" class="text-xs px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">0</span>
+        </div>
+
+        <div id="col-resolved" data-status="resolved" class="kanban-col flex flex-col gap-3 p-1.5 rounded-xl border-2 border-transparent transition-all">
+          <!-- Dynamischer Ticket-Inhalt -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: NEUES TICKET ==================== -->
+  <div id="ticketModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="font-bold text-base text-slate-900 dark:text-slate-100">Neues IT-Support-Ticket anlegen</h3>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Modal Formular -->
+      <form id="newTicketForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Titel / Problembeschreibung *</label>
+          <input 
+            type="text" 
+            id="ticketTitle" 
+            required 
+            placeholder="z. B. WLAN bricht auf Tablet immer ab" 
+            class="w-full px-3.5 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Kategorie</label>
+            <select id="ticketCategory" class="w-full px-3 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100">
+              <option value="Hardware">Hardware / Tablet</option>
+              <option value="Netzwerk">Netzwerk & WLAN</option>
+              <option value="Software">Software & Apps</option>
+              <option value="Konto">Konto & Zugänge</option>
+              <option value="Sonstiges">Sonstiges</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Priorität *</label>
+            <select id="ticketPriority" class="w-full px-3 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100">
+              <option value="Niedrig">Niedrig</option>
+              <option value="Mittel" selected>Mittel</option>
+              <option value="Hoch">Hoch</option>
+              <option value="Kritisch">Kritisch</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Detaillierte Angaben</label>
+          <textarea 
+            id="ticketDescription" 
+            rows="3" 
+            placeholder="Beschreiben Sie das Anliegen möglichst präzise..." 
+            class="w-full px-3.5 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
+          ></textarea>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" id="cancelModalBtn" class="px-4 py-2 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Abbrechen
+          </button>
+          <button type="submit" class="px-5 py-2 text-sm font-medium rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 transition">
+            Ticket anlegen
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // --- 1. INITIAL DEMO DATA ---
+    const DEFAULT_TICKETS = [
+      {
+        id: "TCK-1001",
+        title: "Galaxy Tab S10+ Stiftverbindung unterbrochen",
+        category: "Hardware",
+        priority: "Mittel",
+        status: "open",
+        description: "Der S-Pen verbindet sich nach dem Aufwecken aus dem Standby gelegentlich erst nach manuellem Andocken.",
+        date: "Vor 1 Stunde"
+      },
+      {
+        id: "TCK-1002",
+        title: "VPN-Zugriff zum Firmennetzwerk scheitert",
+        category: "Netzwerk",
+        priority: "Kritisch",
+        status: "open",
+        description: "Fehler 'Zertifikat ungültig' beim Einwählen über das Mobile Netzwerk.",
+        date: "Vor 3 Stunden"
+      },
+      {
+        id: "TCK-1003",
+        title: "Microsoft 365 Lizenz erneuern",
+        category: "Konto",
+        priority: "Hoch",
+        status: "progress",
+        description: "Lizenzwarnung in Excel und Word für Benutzerkonto angezeigt. Verlängerung genehmigt.",
+        date: "Gestern"
+      },
+      {
+        id: "TCK-1004",
+        title: "Zweiten Monitor für Dockingstation eingerichtet",
+        category: "Hardware",
+        priority: "Niedrig",
+        status: "resolved",
+        description: "DisplayPort-Kabel getauscht und Auflösung auf 2560x1440 60Hz konfiguriert.",
+        date: "Vor 2 Tagen"
+      }
+    ];
+
+    // State
+    let tickets = [];
+    let currentFilterPrio = 'all';
+    let searchQuery = '';
+
+    // Chart-Instanzen
+    let statusChartInstance = null;
+    let priorityChartInstance = null;
+
+    // Priority Style Mapping
+    const PRIO_STYLES = {
+      'Kritisch': 'bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border-rose-200 dark:border-rose-900',
+      'Hoch': 'bg-orange-100 text-orange-700 dark:bg-orange-950/70 dark:text-orange-300 border-orange-200 dark:border-orange-900',
+      'Mittel': 'bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+      'Niedrig': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+    };
+
+    // --- 2. LOCAL STORAGE MANAGEMENT ---
+    function loadTickets() {
+      try {
+        const stored = localStorage.getItem('it_helpdesk_tickets');
+        if (stored) {
+          tickets = JSON.parse(stored);
+        } else {
+          tickets = [...DEFAULT_TICKETS];
+          saveTickets();
+        }
+      } catch (e) {
+        tickets = [...DEFAULT_TICKETS];
+      }
+    }
+
+    function saveTickets() {
+      try {
+        localStorage.setItem('it_helpdesk_tickets', JSON.stringify(tickets));
+      } catch (e) {
+        console.error("Speichern fehlgeschlagen", e);
+      }
+    }
+
+    // --- 3. DARK MODE HANDLING ---
+    function initTheme() {
+      const savedTheme = localStorage.getItem('it_helpdesk_theme');
+      const htmlEl = document.documentElement;
+      const sunIcon = document.getElementById('sunIcon');
+      const moonIcon = document.getElementById('moonIcon');
+
+      const isDark = savedTheme ? savedTheme === 'dark' : true; // Standard: Dunkler Modus
+      if (isDark) {
+        htmlEl.classList.add('dark');
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+      } else {
+        htmlEl.classList.remove('dark');
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const isCurrentlyDark = htmlEl.classList.contains('dark');
+      const nextTheme = isCurrentlyDark ? 'light' : 'dark';
+      
+      localStorage.setItem('it_helpdesk_theme', nextTheme);
+      initTheme();
+      // Charts an Farbschema anpassen
+      updateCharts();
+    }
+
+    // --- 4. RENDER & METRICS LOGIC ---
+    function updateMetrics() {
+      const total = tickets.length;
+      const openCount = tickets.filter(t => t.status === 'open').length;
+      const progressCount = tickets.filter(t => t.status === 'progress').length;
+      const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statOpen').textContent = openCount;
+      document.getElementById('statProgress').textContent = progressCount;
+      document.getElementById('statResolved').textContent = resolvedCount;
+
+      document.getElementById('badgeCountOpen').textContent = openCount;
+      document.getElementById('badgeCountProgress').textContent = progressCount;
+      document.getElementById('badgeCountResolved').textContent = resolvedCount;
+
+      const rate = total > 0 ? Math.round((resolvedCount / total) * 100) : 0;
+      document.getElementById('resolutionRate').textContent = `${rate}%`;
+      document.getElementById('progressBar').style.width = `${rate}%`;
+
+      // Stat-Pills der Chart-Sektion
+      document.getElementById('chartResolvedPill').textContent = resolvedCount;
+      document.getElementById('chartPendingPill').textContent = openCount + progressCount;
+
+      // Grafische Statistik aktualisieren
+      updateCharts();
+    }
+
+    // --- 4.1 CHARTS ERSTELLEN & AKTUALISIEREN ---
+    function updateCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const gridColor = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
+
+      const openCount = tickets.filter(t => t.status === 'open').length;
+      const progressCount = tickets.filter(t => t.status === 'progress').length;
+      const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
+
+      // 1. Chart: Statusverteilung & Lösungsanteil (Doughnut)
+      const ctxStatus = document.getElementById('statusDistributionChart')?.getContext('2d');
+      if (ctxStatus) {
+        if (statusChartInstance) {
+          statusChartInstance.data.datasets[0].data = [resolvedCount, openCount, progressCount];
+          statusChartInstance.options.plugins.legend.labels.color = textColor;
+          statusChartInstance.update();
+        } else {
+          statusChartInstance = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+              labels: ['Gelöst', 'Offen', 'In Bearbeitung'],
+              datasets: [{
+                data: [resolvedCount, openCount, progressCount],
+                backgroundColor: [
+                  '#10b981', // Emerald 500
+                  '#f59e0b', // Amber 500
+                  '#0ea5e9'  // Sky 500
+                ],
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#ffffff',
+                hoverOffset: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '68%',
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    boxWidth: 12,
+                    boxHeight: 12,
+                    padding: 12,
+                    font: { size: 11, family: 'Inter, sans-serif' },
+                    color: textColor
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const total = tickets.length || 1;
+                      const val = context.parsed || 0;
+                      const pct = Math.round((val / total) * 100);
+                      return ` ${context.label}: ${val} (${pct}%)`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+
+      // 2. Chart: Gelöste Tickets nach Priorität (Balkendiagramm)
+      const resolvedTickets = tickets.filter(t => t.status === 'resolved');
+      const resolvedPrioCounts = {
+        'Kritisch': resolvedTickets.filter(t => t.priority === 'Kritisch').length,
+        'Hoch': resolvedTickets.filter(t => t.priority === 'Hoch').length,
+        'Mittel': resolvedTickets.filter(t => t.priority === 'Mittel').length,
+        'Niedrig': resolvedTickets.filter(t => t.priority === 'Niedrig').length,
+      };
+
+      const ctxPriority = document.getElementById('resolvedPriorityChart')?.getContext('2d');
+      if (ctxPriority) {
+        if (priorityChartInstance) {
+          priorityChartInstance.data.datasets[0].data = [
+            resolvedPrioCounts['Kritisch'],
+            resolvedPrioCounts['Hoch'],
+            resolvedPrioCounts['Mittel'],
+            resolvedPrioCounts['Niedrig']
+          ];
+          priorityChartInstance.options.scales.x.ticks.color = textColor;
+          priorityChartInstance.options.scales.y.ticks.color = textColor;
+          priorityChartInstance.options.scales.x.grid.color = gridColor;
+          priorityChartInstance.options.scales.y.grid.color = gridColor;
+          priorityChartInstance.options.plugins.legend.labels.color = textColor;
+          priorityChartInstance.update();
+        } else {
+          priorityChartInstance = new Chart(ctxPriority, {
+            type: 'bar',
+            data: {
+              labels: ['Kritisch', 'Hoch', 'Mittel', 'Niedrig'],
+              datasets: [{
+                label: 'Gelöste Tickets',
+                data: [
+                  resolvedPrioCounts['Kritisch'],
+                  resolvedPrioCounts['Hoch'],
+                  resolvedPrioCounts['Mittel'],
+                  resolvedPrioCounts['Niedrig']
+                ],
+                backgroundColor: [
+                  'rgba(244, 63, 94, 0.85)',   // Rose 500
+                  'rgba(249, 115, 22, 0.85)',  // Orange 500
+                  'rgba(245, 158, 11, 0.85)',  // Amber 500
+                  'rgba(148, 163, 184, 0.85)'  // Slate 400
+                ],
+                borderRadius: 8,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { color: textColor, font: { size: 11 } }
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 1,
+                    precision: 0,
+                    color: textColor,
+                    font: { size: 11 }
+                  },
+                  grid: { color: gridColor }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => ` Gelöst: ${context.parsed.y} Ticket(s)`
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+    }
+
+    function renderTickets() {
+      const colOpen = document.getElementById('col-open');
+      const colProgress = document.getElementById('col-progress');
+      const colResolved = document.getElementById('col-resolved');
+
+      colOpen.innerHTML = '';
+      colProgress.innerHTML = '';
+      colResolved.innerHTML = '';
+
+      // Filter anwenden
+      const filtered = tickets.filter(t => {
+        const matchesPrio = (currentFilterPrio === 'all') || (t.priority === currentFilterPrio);
+        const query = searchQuery.toLowerCase().trim();
+        const matchesSearch = !query || 
+          t.title.toLowerCase().includes(query) || 
+          t.description.toLowerCase().includes(query) || 
+          t.id.toLowerCase().includes(query) ||
+          t.category.toLowerCase().includes(query);
+        return matchesPrio && matchesSearch;
+      });
+
+      filtered.forEach(ticket => {
+        const card = createTicketCard(ticket);
+        if (ticket.status === 'open') {
+          colOpen.appendChild(card);
+        } else if (ticket.status === 'progress') {
+          colProgress.appendChild(card);
+        } else if (ticket.status === 'resolved') {
+          colResolved.appendChild(card);
+        }
+      });
+
+      // Leere Spalten-Hinweise
+      ['open', 'progress', 'resolved'].forEach(statusKey => {
+        const container = statusKey === 'open' ? colOpen : (statusKey === 'progress' ? colProgress : colResolved);
+        if (container.children.length === 0) {
+          container.innerHTML = `
+            <div class="h-28 flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-slate-400 text-xs p-4 text-center">
+              <span>Keine Tickets</span>
+            </div>
+          `;
+        }
+      });
+
+      updateMetrics();
+    }
+
+    // Kartenelement für ein Ticket erzeugen
+    function createTicketCard(ticket) {
+      const card = document.createElement('div');
+      card.className = "bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col gap-2.5 cursor-grab active:cursor-grabbing";
+      card.setAttribute('data-id', ticket.id);
+      card.setAttribute('draggable', 'true');
+
+      const prioClass = PRIO_STYLES[ticket.priority] || PRIO_STYLES['Niedrig'];
+
+      // Ziel-Status-Buttons für One-Touch Verschieben generieren
+      let quickMoveButtons = '';
+      if (ticket.status !== 'open') {
+        quickMoveButtons += `
+          <button data-target="open" class="quick-move-btn px-2 py-1 rounded-md text-[11px] font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 transition" title="Nach 'Offen' verschieben">
+            &larr; Offen
+          </button>
+        `;
+      }
+      if (ticket.status !== 'progress') {
+        quickMoveButtons += `
+          <button data-target="progress" class="quick-move-btn px-2 py-1 rounded-md text-[11px] font-medium bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 transition" title="Nach 'In Bearbeitung' verschieben">
+            In Bearb.
+          </button>
+        `;
+      }
+      if (ticket.status !== 'resolved') {
+        quickMoveButtons += `
+          <button data-target="resolved" class="quick-move-btn px-2 py-1 rounded-md text-[11px] font-medium bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition" title="Nach 'Gelöst' verschieben">
+            Gelöst &rarr;
+          </button>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="drag-handle touch-none text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab p-0.5" title="Halten zum Ziehen">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+            </span>
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">${ticket.id}</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md font-semibold border ${prioClass}">
+              ${ticket.priority}
+            </span>
+          </div>
+          <span class="text-[11px] text-slate-400">${ticket.date || 'Gerade eben'}</span>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-snug">${escapeHtml(ticket.title)}</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-3">${escapeHtml(ticket.description || 'Keine weitere Beschreibung hinterlegt.')}</p>
+        </div>
+
+        <div class="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+          <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            ${ticket.category || 'Support'}
+          </span>
+
+          <!-- One-Touch Quick Move & Delete Actions -->
+          <div class="flex items-center gap-1.5 ml-auto">
+            <div class="flex items-center gap-1">
+              ${quickMoveButtons}
+            </div>
+
+            <button class="delete-ticket-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Löschen">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Quick Move Touch Buttons
+      card.querySelectorAll('.quick-move-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetStatus = btn.getAttribute('data-target');
+          changeTicketStatus(ticket.id, targetStatus);
+        });
+      });
+
+      // Ticket Löschen
+      const deleteBtn = card.querySelector('.delete-ticket-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTicket(ticket.id);
+      });
+
+      // Desktop & Pointer HTML5 Drag & Drop
+      card.addEventListener('dragstart', (e) => {
+        draggedTicketId = ticket.id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', ticket.id);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedTicketId = null;
+        document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'));
+      });
+
+      // Touch Drag & Drop (Samsung Galaxy Tab S10+ / S-Pen & Fingereingabe)
+      setupTouchDrag(card, ticket.id);
+
+      return card;
+    }
+
+    // --- 5. DRAG & DROP & TOUCH SYSTEM ---
+    let draggedTicketId = null;
+    let touchGhostEl = null;
+    let touchOriginCard = null;
+
+    function setupTouchDrag(card, ticketId) {
+      const handle = card.querySelector('.drag-handle');
+      if (!handle) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isDraggingTouch = false;
+
+      handle.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchOriginCard = card;
+        draggedTicketId = ticketId;
+      }, { passive: true });
+
+      handle.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+
+        if (!isDraggingTouch && (deltaX > 8 || deltaY > 8)) {
+          isDraggingTouch = true;
+          touchOriginCard.classList.add('dragging');
+
+          // Erzeuge visuellen Ghost-Klon
+          touchGhostEl = touchOriginCard.cloneNode(true);
+          touchGhostEl.classList.add('touch-ghost');
+          touchGhostEl.style.width = `${touchOriginCard.offsetWidth}px`;
+          document.body.appendChild(touchGhostEl);
+        }
+
+        if (isDraggingTouch && touchGhostEl) {
+          e.preventDefault(); // Verhindere Scrollen während des Verschiebens
+          touchGhostEl.style.left = `${touch.clientX}px`;
+          touchGhostEl.style.top = `${touch.clientY}px`;
+
+          // Drop-Zone visuell hervorheben
+          const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetCol = elemBelow ? elemBelow.closest('.kanban-col') : null;
+
+          document.querySelectorAll('.kanban-col').forEach(col => {
+            if (col === targetCol) {
+              col.classList.add('drag-over');
+            } else {
+              col.classList.remove('drag-over');
+            }
+          });
+        }
+      }, { passive: false });
+
+      const handleTouchEnd = (e) => {
+        if (!isDraggingTouch) {
+          draggedTicketId = null;
+          return;
+        }
+
+        const changedTouch = e.changedTouches[0];
+        if (touchGhostEl) {
+          touchGhostEl.remove();
+          touchGhostEl = null;
+        }
+
+        if (touchOriginCard) {
+          touchOriginCard.classList.remove('dragging');
+        }
+
+        const elemBelow = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
+        const targetCol = elemBelow ? elemBelow.closest('.kanban-col') : null;
+
+        document.querySelectorAll('.kanban-col').forEach(col => col.classList.remove('drag-over'));
+
+        if (targetCol && draggedTicketId) {
+          const newStatus = targetCol.getAttribute('data-status');
+          changeTicketStatus(draggedTicketId, newStatus);
+        }
+
+        isDraggingTouch = false;
+        draggedTicketId = null;
+        touchOriginCard = null;
+      };
+
+      handle.addEventListener('touchend', handleTouchEnd);
+      handle.addEventListener('touchcancel', handleTouchEnd);
+    }
+
+    function initKanbanDropzones() {
+      const columns = document.querySelectorAll('.kanban-col');
+      columns.forEach(col => {
+        col.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          col.classList.add('drag-over');
+        });
+
+        col.addEventListener('dragleave', (e) => {
+          if (!col.contains(e.relatedTarget)) {
+            col.classList.remove('drag-over');
+          }
+        });
+
+        col.addEventListener('drop', (e) => {
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          const ticketId = e.dataTransfer.getData('text/plain') || draggedTicketId;
+          const newStatus = col.getAttribute('data-status');
+          if (ticketId && newStatus) {
+            changeTicketStatus(ticketId, newStatus);
+          }
+        });
+      });
+    }
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- 5. TICKET OPERATIONS ---
+    function changeTicketStatus(id, newStatus) {
+      const item = tickets.find(t => t.id === id);
+      if (item) {
+        item.status = newStatus;
+        saveTickets();
+        renderTickets();
+      }
+    }
+
+    function deleteTicket(id) {
+      tickets = tickets.filter(t => t.id !== id);
+      saveTickets();
+      renderTickets();
+    }
+
+    function createNewTicket(title, category, priority, description) {
+      const newId = `TCK-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newTicket = {
+        id: newId,
+        title: title.trim(),
+        category: category,
+        priority: priority,
+        status: 'open',
+        description: description.trim(),
+        date: 'Heute'
+      };
+
+      tickets.unshift(newTicket);
+      saveTickets();
+      renderTickets();
+    }
+
+    // --- 6. MODAL HANDLING ---
+    const modal = document.getElementById('ticketModal');
+    const modalContent = modal.querySelector('div');
+
+    function openModal() {
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+        document.getElementById('ticketTitle').focus();
+      }, 10);
+    }
+
+    function closeModal() {
+      modal.classList.add('opacity-0');
+      modalContent.classList.remove('scale-100');
+      modalContent.classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        document.getElementById('newTicketForm').reset();
+      }, 200);
+    }
+
+    // --- 7. EVENT LISTENERS INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      // Setup Theme & Data
+      initTheme();
+      loadTickets();
+      renderTickets();
+      initKanbanDropzones();
+
+      // Theme Button
+      document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+      // Modal Controls
+      document.getElementById('openNewTicketModalBtn').addEventListener('click', openModal);
+      document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+      document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      // Form Submit
+      document.getElementById('newTicketForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('ticketTitle').value;
+        const category = document.getElementById('ticketCategory').value;
+        const priority = document.getElementById('ticketPriority').value;
+        const description = document.getElementById('ticketDescription').value;
+
+        if (title.trim()) {
+          createNewTicket(title, category, priority, description);
+          closeModal();
+        }
+      });
+
+      // Filter Buttons
+      const prioButtons = document.querySelectorAll('.prio-filter-btn');
+      prioButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          prioButtons.forEach(b => {
+            b.classList.remove('bg-blue-600', 'text-white');
+            b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+          });
+          btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+          btn.classList.add('bg-blue-600', 'text-white');
+
+          currentFilterPrio = btn.getAttribute('data-filter-prio');
+          renderTickets();
+        });
+      });
+
+      // Search Inputs
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (searchQuery.length > 0) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+        renderTickets();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        renderTickets();
+      });
+
+      // Reset Demo Data
+      document.getElementById('resetDataBtn').addEventListener('click', () => {
+        tickets = JSON.parse(JSON.stringify(DEFAULT_TICKETS));
+        saveTickets();
+        renderTickets();
+      });
+    });
+  </script>
+</body>
+</html>
+```
